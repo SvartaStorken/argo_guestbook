@@ -1,0 +1,32 @@
+# Bas: UBI 10
+FROM registry.access.redhat.com/ubi10/ubi:latest
+
+LABEL description="Redis 7.2 on UBI 10 (Remi) - Final"
+
+# 1. Installera Repos & Redis
+RUN dnf -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-10.noarch.rpm && \
+    dnf -y install https://rpms.remirepo.net/enterprise/remi-release-10.rpm && \
+    dnf module enable -y redis:remi-7.2 && \
+    dnf -y install redis && \
+    dnf clean all
+
+# 2. Kopiera skript
+COPY fix-permissions /usr/local/bin/
+COPY run-redis.sh /usr/local/bin/
+
+# 3. Gör körbara
+RUN chmod +x /usr/local/bin/fix-permissions \
+    && chmod +x /usr/local/bin/run-redis.sh
+
+# 4. Fixa rättigheter (För OpenShift random user)
+# Vi skapar mappar för data och config
+RUN mkdir -p /var/lib/redis/data && \
+    # Fixa data-mappen
+    /usr/local/bin/fix-permissions /var/lib/redis && \
+    # Fixa /etc så vi kan skriva redis.conf där
+    /usr/local/bin/fix-permissions /etc
+
+# 5. Start
+EXPOSE 6379
+USER 1001
+CMD ["/usr/local/bin/run-redis.sh"]
