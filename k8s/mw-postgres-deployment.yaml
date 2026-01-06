@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mw-postgres-deployment
+  labels:
+    app: mw-postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mw-postgres
+  template:
+    metadata:
+      labels:
+        app: mw-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: quay.io/eksta_mannen/postgres-argo:latest
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRESQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mw-guestbook-secrets
+                  key: database-user
+            - name: POSTGRESQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mw-guestbook-secrets
+                  key: database-password
+            - name: POSTGRESQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: mw-guestbook-secrets
+                  key: database-name
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/pgsql/data
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: mw-postgres-pvc
