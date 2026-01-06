@@ -18,24 +18,21 @@ spec:
     spec:
       containers:
         - name: redis
-          image: quay.io/eksta_mannen/redis-argo:latest
+          image: quay.io/eksta_mannen/redis-argo:88dd5986bc11f0af1a826e9a1a4f49792c7c0136
           imagePullPolicy: Always
           ports:
             - containerPort: 6379
-            
           env:
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: mw-guestbook-secrets  
-                  key: redis-password         
-
+                  name: mw-guestbook-secrets
+                  key: redis-password
           readinessProbe:
             exec:
               command: ["sh", "-c", "redis-cli -a $REDIS_PASSWORD ping"]
             initialDelaySeconds: 5
             periodSeconds: 10
-            
           resources:
             requests:
               memory: "256Mi"
@@ -43,7 +40,6 @@ spec:
             limits:
               memory: "512Mi"
               cpu: "500m"
-              
           volumeMounts:
             - name: redis-data
               mountPath: /var/lib/redis/data
