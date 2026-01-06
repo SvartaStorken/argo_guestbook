@@ -1,0 +1,55 @@
+name: Build and Push Redis to Quay
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'images/**'
+
+env:
+  REGISTRY_QUAY: quay.io
+  REGISTRY_RH: registry.redhat.io
+  # Kontrollera att detta matchar namnet på ditt repo i Quay
+  IMAGE_NAME: eksta_mannen/redis-argo 
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 1. Logga in på Red Hat för att hämta UBI (använd dina personliga RH-creds)
+      - name: Log in to Red Hat Registry
+        uses: redhat-actions/podman-login@v1.7
+        with:
+          registry: ${{ env.REGISTRY_RH }}
+          username: ${{ secrets.RH_USERNAME }}
+          password: ${{ secrets.RH_PASSWORD }}
+
+      # 2. Logga in på Quay.io med ROBOT-kontot
+      - name: Log in to Quay.io
+        uses: redhat-actions/podman-login@v1.7
+        with:
+          registry: ${{ env.REGISTRY_QUAY }}
+          username: ${{ secrets.QUAY_USERNAME }} # Robot-namnet (eksta_mannen+argo)
+          password: ${{ secrets.QUAY_PASSWORD }} # Robot-token
+
+      - name: Build Redis Image
+        id: build-image
+        uses: redhat-actions/buildah-build@v2.13
+        with:
+          image: ${{ env.IMAGE_NAME }}
+          tags: latest
+          context: ./images
+          containerfiles: ./images/Containerfile
+
+      - name: Push to Quay.io
+        uses: redhat-actions/push-to-registry@v2.8
+        with:
+          image: ${{ env.IMAGE_NAME }}
+          tags: latest
+          registry: ${{ env.REGISTRY_QUAY }}
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_PASSWORD }}
