@@ -47,8 +47,8 @@ jobs:
         with:
           image: ${{ env.IMAGE_NAME }}
           tags: latest ${{ github.sha }} # <--- Här lägger vi till SHA
-          context: ./images
-          containerfiles: ./images/Containerfile
+          context: ./images/redis
+          containerfiles: ./images/redis/Containerfile
 
       # 4. Pusha BÅDA taggarna till Quay
       - name: Push to Quay.io
