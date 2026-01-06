@@ -1,28 +1,29 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mw-postgres
+  name: mw-postgres-debug
   labels:
-    app: mw-postgres
+    app: mw-postgres-debug
 spec:
   replicas: 1
   strategy:
-    type: Recreate # Bättre för databaser för att undvika att två poddar rör samma PVC
+    type: Recreate
   selector:
     matchLabels:
-      app: mw-postgres
+      app: mw-postgres-debug
   template:
     metadata:
       labels:
-        app: mw-postgres
+        app: mw-postgres-debug
     spec:
-      terminationGracePeriodSeconds: 60
+      terminationGracePeriodSeconds: 0 # Snabbare omstart vid debug
       containers:
-        - name: postgres
+        - name: postgres-debug
           image: quay.io/eksta_mannen/postgres-argo:latest
           imagePullPolicy: Always
-          ports:
-            - containerPort: 5432
+          # HÄR ÄR DEBUG-TRICKET:
+          command: ["sleep"]
+          args: ["infinity"]
           env:
             - name: POSTGRESQL_USER
               valueFrom:
