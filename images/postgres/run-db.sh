@@ -1,30 +1,29 @@
 #!/bin/bash
 set -e
-
-# Sökvägar för Postgres-binärer
 export PATH="$PATH:/usr/pgsql-16/bin"
 
-# 1. SJÄLVLÄKNING: Städa trasig PVC om PG_VERSION saknas
+# 1. SJÄLVLÄKNING (Städa om installationen avbrutits)
 if [ -d "$PGDATA" ] && [ ! -f "$PGDATA/PG_VERSION" ]; then
-    echo "--- Found incomplete data at $PGDATA. Cleaning up for fresh init... ---"
+    echo "--- Found incomplete data. Cleaning up for fresh init... ---"
     rm -rf "${PGDATA:?}"/*
 fi
 
-# 2. INITIERING: Om mappen är tom, skapa databasklustret
+# 2. FULL INITIERING
 if [ ! -f "$PGDATA/PG_VERSION" ]; then
-    echo "--- Initializing fresh database cluster ---"
+    echo "--- Initializing database ---"
     initdb --username=postgres -D "$PGDATA"
     
-    # 3. KONFIGURATION
+    echo "--- Applying chmod 700 fix ---"
+    chmod 700 "$PGDATA"
+
     echo "listen_addresses = '*'" >> "$PGDATA/postgresql.conf"
     echo "host all all 0.0.0.0/0 scram-sha-256" >> "$PGDATA/pg_hba.conf"
 
-    # 4. TEMPORÄR START: För att skapa din app-användare och databas
-    echo "--- Starting temporary server for initial setup ---"
+    echo "--- Starting temporary server for setup ---"
     pg_ctl -D "$PGDATA" -w start
     sleep 2
 
-    echo "--- Creating user and database from environment variables ---"
+    echo "--- Creating user and database ---"
     psql --username "postgres" --dbname "postgres" <<-EOSQL
         CREATE USER ${POSTGRESQL_USER} WITH PASSWORD '${POSTGRESQL_PASSWORD}';
         CREATE DATABASE "${POSTGRESQL_DATABASE}" OWNER ${POSTGRESQL_USER};
@@ -37,6 +36,8 @@ EOSQL
     pg_ctl -D "$PGDATA" -m fast -w stop
 fi
 
-# 5. START: Kör Postgres som huvudprocess (PID 1)
+# 3. STARTA PÅ RIKTIGT
+echo "--- Final Permission Check ---"
+chmod 700 "$PGDATA"
 echo "--- Starting PostgreSQL ---"
 exec postgres -D "$PGDATA"

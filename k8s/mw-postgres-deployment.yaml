@@ -1,29 +1,29 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mw-postgres-debug
+  name: mw-postgres
   labels:
-    app: mw-postgres-debug
+    app: mw-postgres
 spec:
   replicas: 1
+  # Recreate är säkrast för databaser med RWO-volymer för att undvika låsningsfel
   strategy:
-    type: Recreate
+    type: Recreate 
   selector:
     matchLabels:
-      app: mw-postgres-debug
+      app: mw-postgres
   template:
     metadata:
       labels:
-        app: mw-postgres-debug
+        app: mw-postgres
     spec:
-      terminationGracePeriodSeconds: 0 # Snabbare omstart vid debug
+      terminationGracePeriodSeconds: 60
       containers:
-        - name: postgres-debug
+        - name: postgres
           image: quay.io/eksta_mannen/postgres-argo:latest
           imagePullPolicy: Always
-          # HÄR ÄR DEBUG-TRICKET:
-          command: ["sleep"]
-          args: ["infinity"]
+          ports:
+            - containerPort: 5432
           env:
             - name: POSTGRESQL_USER
               valueFrom:
