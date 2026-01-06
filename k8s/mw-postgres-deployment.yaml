@@ -1,22 +1,25 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mw-postgres-deployment
+  name: mw-postgres             # Ändrat från postgres-db
   labels:
-    app: mw-postgres
+    app: mw-postgres           # Ändrat från postgres-db
 spec:
   replicas: 1
+  strategy:
+    type: RollingUpdate
   selector:
     matchLabels:
-      app: mw-postgres
+      app: mw-postgres         # Måste matcha template.labels nedan
   template:
     metadata:
       labels:
-        app: mw-postgres
+        app: mw-postgres       # Ändrat från postgres-db
     spec:
       containers:
         - name: postgres
           image: quay.io/eksta_mannen/postgres-argo:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 5432
           env:
@@ -35,10 +38,22 @@ spec:
                 secretKeyRef:
                   name: mw-guestbook-secrets
                   key: database-name
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "50m"      # Din halverade CPU
+            limits:
+              memory: "512Mi"
+              cpu: "250m"     # Din halverade CPU
           volumeMounts:
-            - name: postgres-data
+            - name: pg-data
               mountPath: /var/lib/pgsql/data
       volumes:
-        - name: postgres-data
+        - name: pg-data
           persistentVolumeClaim:
             claimName: mw-postgres-pvc
