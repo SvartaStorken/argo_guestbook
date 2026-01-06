@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'images/**'
 
 env:
   REGISTRY_QUAY: quay.io
