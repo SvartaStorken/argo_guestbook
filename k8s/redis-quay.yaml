@@ -23,12 +23,13 @@ spec:
           ports:
             - containerPort: 6379
             
-          # TILLFÄLLIGT LÖSENORD FÖR TEST
           env:
             - name: REDIS_PASSWORD
-              value: "testpass"
+              valueFrom:
+                secretKeyRef:
+                  name: mw-guestbook-secrets  
+                  key: redis-password         
 
-          # Denna kommer nu använda "testpass" automatiskt
           readinessProbe:
             exec:
               command: ["sh", "-c", "redis-cli -a $REDIS_PASSWORD ping"]
