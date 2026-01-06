@@ -13,10 +13,12 @@ RUN dnf -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-10.
 # 2. Kopiera skript
 COPY fix-permissions /usr/local/bin/
 COPY run-redis.sh /usr/local/bin/
+COPY health-check.sh /usr/local/bin/
 
 # 3. Gör körbara
 RUN chmod +x /usr/local/bin/fix-permissions \
-    && chmod +x /usr/local/bin/run-redis.sh
+    && chmod +x /usr/local/bin/run-redis.sh \
+    && chmod +x /usr/local/bin/health-check.sh
 
 # 4. Fixa rättigheter (För OpenShift random user)
 # Vi skapar mappar för data och config
