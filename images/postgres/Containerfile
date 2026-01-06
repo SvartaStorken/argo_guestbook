@@ -1,0 +1,34 @@
+# Bas: UBI 10
+FROM registry.access.redhat.com/ubi10/ubi:latest
+
+LABEL description="PostgreSQL 16 on UBI 10 - Custom Build"
+
+# 1. Installera Postgres (PGDG Repo)
+RUN dnf -y install https://download.postgresql.org/pub/repos/yum/reporpms/EL-10-x86_64/pgdg-redhat-repo-latest.noarch.rpm
+RUN dnf -y install postgresql16-server postgresql16-contrib findutils procps-ng && \
+    dnf clean all
+
+# 2. Kopiera in dina lokala script
+COPY fix-permissions /usr/local/bin/
+COPY run-db.sh /usr/local/bin/
+
+# 3. Gör scripten körbara
+RUN chmod +x /usr/local/bin/fix-permissions \
+    && chmod +x /usr/local/bin/run-db.sh
+
+# 4. Förbered mappar och kör fix-permissions
+# VIKTIGT: Vi skapar bara 'data', INTE 'userdata'.
+# Vi låter initdb skapa 'userdata' senare så rättigheterna blir rätt.
+RUN mkdir -p /var/lib/pgsql/data && \
+    mkdir -p /var/run/postgresql && \
+    /usr/local/bin/fix-permissions /var/lib/pgsql && \
+    /usr/local/bin/fix-permissions /var/run/postgresql
+
+# 5. Start-konfiguration
+# Här sätter vi att datan ska ligga i undermappen userdata
+ENV PATH="/usr/pgsql-16/bin:$PATH" \
+    PGDATA="/var/lib/pgsql/data/userdata"
+
+EXPOSE 5432
+USER 1001
+CMD ["/usr/local/bin/run-db.sh"]
