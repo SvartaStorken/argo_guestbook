@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mw-redis-service  # Detta namn används som DNS-adress inuti klustret
+  labels:
+    app: mw-redis
+spec:
+  ports:
+    - port: 6379
+      targetPort: 6379
+      protocol: TCP
+  selector:
+    app: mw-redis         # VIKTIGT: Måste matcha 'app: mw-redis' i din Deployment
+  type: ClusterIP         # Standard för intern kommunikation
