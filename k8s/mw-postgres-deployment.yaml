@@ -8,7 +8,7 @@ spec:
   replicas: 1
   # Recreate är säkrast för databaser med RWO-volymer för att undvika låsningsfel
   strategy:
-    type: Recreate 
+    type: Recreate
   selector:
     matchLabels:
       app: mw-postgres
@@ -20,7 +20,7 @@ spec:
       terminationGracePeriodSeconds: 60
       containers:
         - name: postgres
-          image: quay.io/eksta_mannen/postgres-argo:latest
+          image: quay.io/eksta_mannen/postgres-argo:9aaa7b5596ac9069c4b54ceebf586dc8f4184ad9
           imagePullPolicy: Always
           ports:
             - containerPort: 5432
