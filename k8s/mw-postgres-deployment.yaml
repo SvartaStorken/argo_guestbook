@@ -6,9 +6,8 @@ metadata:
     app: mw-postgres
 spec:
   replicas: 1
-  # Recreate är säkrast för databaser med RWO-volymer för att undvika låsningsfel
   strategy:
-    type: Recreate
+    type: Recreate 
   selector:
     matchLabels:
       app: mw-postgres
@@ -20,10 +19,17 @@ spec:
       terminationGracePeriodSeconds: 60
       containers:
         - name: postgres
-          image: quay.io/eksta_mannen/postgres-argo:9aaa7b5596ac9069c4b54ceebf586dc8f4184ad9
+          image: quay.io/eksta_mannen/postgres-argo:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 5432
+          # Steg 6: Readiness Probe för att säkerställa att DB är redo för trafik
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U postgres"]
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
           env:
             - name: POSTGRESQL_USER
               valueFrom:
