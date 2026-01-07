@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: redis
-          image: quay.io/eksta_mannen/redis-argo:60416d3ff4b88a18583952b5fe63fd0cce658dc5
+          image: quay.io/eksta_mannen/redis-argo:76da4e06ebc3d7226f2dcef5f505d059de29ddd4
           imagePullPolicy: Always
           ports:
             - containerPort: 6379
