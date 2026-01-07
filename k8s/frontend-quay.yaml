@@ -18,17 +18,15 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: quay.io/eksta_mannen/frontend-argo:latest
+          image: quay.io/eksta_mannen/frontend-argo:f104a4ddaf00c856605e61b504c5d38153bfb3fd
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
-            
           # MONTERA CONFIGMAP HÄR
           volumeMounts:
             - name: nginx-config
               mountPath: /etc/nginx/nginx.conf
-              subPath: nginx.conf  # Viktigt: Endast filen, inte hela mappen
-              
+              subPath: nginx.conf # Viktigt: Endast filen, inte hela mappen
           resources:
             requests:
               memory: "64Mi"
@@ -42,7 +40,6 @@ spec:
               port: 8080
             initialDelaySeconds: 10
             periodSeconds: 10
-            
       # DEFINIERA VOLYMEN HÄR
       volumes:
         - name: nginx-config
