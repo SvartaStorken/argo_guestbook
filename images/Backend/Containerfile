@@ -1,0 +1,34 @@
+# --- Stage 1: Builder ---
+FROM registry.access.redhat.com/ubi10/go-toolset:latest AS builder
+
+WORKDIR /opt/app-root/src
+
+# Kopiera filer och SÄTT RÄTT ÄGARE (Detta var nyckeln!)
+# Vi sätter ägare till 1001 (default user i go-toolset) så att 'go mod tidy' får skriva.
+COPY --chown=1001:0 go.mod main.go ./
+
+# Nu funkar detta eftersom användaren äger filerna
+RUN go mod tidy
+
+# Bygg applikationen (Statisk binär)
+RUN CGO_ENABLED=0 go build -o guestbook-api .
+
+# --- Stage 2: Runtime ---
+FROM registry.access.redhat.com/ubi10/ubi-minimal:latest
+
+LABEL description="Guestbook Backend API (Go)"
+
+WORKDIR /app
+
+# Installera curl (Som vi bestämde)
+RUN microdnf install -y curl && microdnf clean all
+
+# Kopiera binärfilen från builder
+COPY --from=builder /opt/app-root/src/guestbook-api .
+RUN chmod +x guestbook-api
+
+# Konfigurera
+EXPOSE 8080
+USER 1001
+
+CMD ["./guestbook-api"]
