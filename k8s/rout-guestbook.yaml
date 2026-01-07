@@ -1,0 +1,12 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: mw-guestbook
+  labels:
+    app: mw-frontend
+spec:
+  to:
+    kind: Service
+    name: mw-frontend-service
+  port:
+    targetPort: http
