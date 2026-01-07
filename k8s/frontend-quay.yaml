@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mw-frontend
+  labels:
+    app: mw-frontend
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: mw-frontend
+  template:
+    metadata:
+      labels:
+        app: mw-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: quay.io/eksta_mannen/frontend-argo:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+            
+          # MONTERA CONFIGMAP HÄR
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf  # Viktigt: Endast filen, inte hela mappen
+              
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            
+      # DEFINIERA VOLYMEN HÄR
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: mw-frontend-config

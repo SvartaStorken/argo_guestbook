@@ -1,0 +1,76 @@
+name: Build and Push Frontend to Quay
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'images/Frontend/**'
+      - '.github/workflows/build-frontend.yml'
+
+env:
+  REGISTRY_QUAY: quay.io
+  REGISTRY_RH: registry.redhat.io
+  IMAGE_NAME: eksta_mannen/frontend-argo
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to Red Hat Registry
+        uses: redhat-actions/podman-login@v1.7
+        with:
+          registry: ${{ env.REGISTRY_RH }}
+          username: ${{ secrets.RH_USERNAME }}
+          password: ${{ secrets.RH_PASSWORD }}
+
+      - name: Log in to Quay.io
+        uses: redhat-actions/podman-login@v1.7
+        with:
+          registry: ${{ env.REGISTRY_QUAY }}
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_PASSWORD }}
+
+      - name: Build Frontend Image
+        id: build-image
+        uses: redhat-actions/buildah-build@v2.13
+        with:
+          image: ${{ env.IMAGE_NAME }}
+          tags: latest ${{ github.sha }}
+          context: ./images/Frontend
+          containerfiles: ./images/Frontend/Containerfile
+
+      - name: Push to Quay.io
+        uses: redhat-actions/push-to-registry@v2.8
+        with:
+          image: ${{ env.IMAGE_NAME }}
+          tags: latest ${{ github.sha }}
+          registry: ${{ env.REGISTRY_QUAY }}
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_PASSWORD }}
+
+      - name: Update image tag in K8s manifest
+        uses: mikefarah/yq@v4.44.1
+        with:
+          cmd: yq -i '.spec.template.spec.containers[0].image = "quay.io/eksta_mannen/frontend-argo:${{ github.sha }}"' k8s/frontend-quay.yaml
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add k8s/frontend-quay.yaml
+          
+          # Vi gör committen först
+          git commit -m "chore: update frontend image to ${{ github.sha }} [skip ci]" || echo "No changes to commit"
+          
+          # Hämta de senaste ändringarna och lägg vår commit överst
+          git pull --rebase origin main
+          
+          # Skicka sedan upp allt
+          git push origin main

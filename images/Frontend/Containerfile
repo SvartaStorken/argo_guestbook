@@ -1,0 +1,18 @@
+FROM registry.access.redhat.com/ubi10/nginx-126:10.0
+
+LABEL description="Guestbook Frontend (Nginx) on UBI 10"
+
+# 1. Kopiera konfigurationen
+# Vi skriver över default-filen i /etc/nginx/nginx.conf
+COPY nginx.conf /etc/nginx/nginx.conf
+
+# 2. Kopiera HTML-filen
+# Vi lägger den i /opt/app-root/src (som vi såg var root i configen)
+COPY index.html /opt/app-root/src/index.html
+
+# 3. Exponera port 8080
+EXPOSE 8080
+
+# 4. Starta Nginx
+# (CMD ärvs egentligen från bas-imagen, men vi skriver ut den för tydlighet)
+CMD ["nginx", "-g", "daemon off;"]
