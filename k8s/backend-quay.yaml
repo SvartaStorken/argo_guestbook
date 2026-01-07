@@ -18,11 +18,10 @@ spec:
     spec:
       containers:
         - name: backend
-          image: quay.io/eksta_mannen/backend-argo:latest
+          image: quay.io/eksta_mannen/backend-argo:ab4c203c4390e35ae4aa9067e2791594d50c49e1
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
-          
           # Miljövariabler för att hitta databaserna
           env:
             # Postgres-konfiguration
@@ -45,7 +44,6 @@ spec:
                 secretKeyRef:
                   name: mw-guestbook-secrets
                   key: database-name
-            
             # Redis-konfiguration
             - name: REDIS_HOST
               value: "mw-redis-service"
@@ -56,11 +54,9 @@ spec:
                 secretKeyRef:
                   name: mw-guestbook-secrets
                   key: redis-password
-            
             # App-konfiguration
             - name: PORT
               value: "8080"
-
           # Readiness Probe (Kollar /health endpointen)
           readinessProbe:
             httpGet:
@@ -68,7 +64,6 @@ spec:
               port: 8080
             initialDelaySeconds: 10
             periodSeconds: 5
-
           # Liveness Probe (Startar om den om den dör helt)
           livenessProbe:
             httpGet:
@@ -76,7 +71,6 @@ spec:
               port: 8080
             initialDelaySeconds: 15
             periodSeconds: 20
-
           resources:
             requests:
               memory: "64Mi"
