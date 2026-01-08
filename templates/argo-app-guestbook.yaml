@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mw-guestbook-app
+  namespace: openshift-gitops
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/SvartaStorken/argo_guestbook.git'
+    targetRevision: main
+    path: k8s # Mappen med dina vanliga deploys
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: grupp2
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

@@ -1,0 +1,35 @@
+name: Deploy ArgoCD Application
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'templates/argo-app-guestbook.yaml' # Triggar bara när argo-inställningen ändras
+      - '.github/workflows/deploy-argocd.yml'
+
+env:
+  OPENSHIFT_SERVER: ${{ secrets.OPENSHIFT_SERVER }}
+  OPENSHIFT_TOKEN: ${{ secrets.OPENSHIFT_TOKEN }}
+
+jobs:
+  deploy-argo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install oc CLI
+        uses: redhat-actions/oc-installer@v1.2
+
+      - name: Log in to OpenShift
+        uses: redhat-actions/oc-login@v1.3
+        with:
+          openshift_server_url: ${{ env.OPENSHIFT_SERVER }}
+          openshift_token: ${{ env.OPENSHIFT_TOKEN }}
+          insecure_skip_tls_verify: true
+
+      - name: Apply ArgoCD Application
+        run: |
+          # Applicera manifestet från din templates-mapp
+          oc apply -f templates/argo-app-guestbook.yaml -n openshift-gitops
