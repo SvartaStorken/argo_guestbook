@@ -22,6 +22,12 @@ jobs:
       - name: Install oc CLI
         uses: redhat-actions/oc-installer@v1.2
 
+      - name: Install ArgoCD CLI
+        run: |
+          curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+          sudo install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
+          rm argocd-linux-amd64
+
       - name: Log in to OpenShift
         uses: redhat-actions/oc-login@v1.3
         with:
@@ -29,7 +35,24 @@ jobs:
           openshift_token: ${{ env.OPENSHIFT_TOKEN }}
           insecure_skip_tls_verify: true
 
-      - name: Apply ArgoCD Application
+      - name: Create/Update ArgoCD Application
+        env:
+          ARGOCD_SERVER: openshift-gitops-server-openshift-gitops.apps.devops24.cloud2.se
         run: |
-          # Applicera manifestet från din templates-mapp
-          oc apply -f templates/argo-app-guestbook.yaml -n openshift-gitops
+          # Hämta admin-lösenordet från OpenShift (SSO fungerar ej i CI utan webbläsare)
+          ARGOCD_PASSWORD=$(oc get secret openshift-gitops-cluster -n openshift-gitops -o jsonpath='{.data.admin\.password}' | base64 -d)
+
+          # Logga in i ArgoCD med admin-användaren
+          argocd login $ARGOCD_SERVER --username admin --password "$ARGOCD_PASSWORD" --insecure --grpc-web
+
+          # Skapa eller uppdatera applikationen
+          argocd app create mw-guestbook \
+            --repo https://github.com/SvartaStorken/argo_guestbook.git \
+            --path k8s \
+            --dest-server https://kubernetes.default.svc \
+            --dest-namespace grupp2 \
+            --project default \
+            --sync-policy automated \
+            --auto-prune \
+            --self-heal \
+            --upsert
