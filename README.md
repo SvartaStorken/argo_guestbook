@@ -30,3 +30,27 @@ Once ArgoCD is deployed, it will deploy the guestbook as configured in its YAML 
 Any changes to the YAML files will trigger ArgoCD to redeploy.
 
 The GitHub workflow also builds the Containerfiles and uploads them to the Quay.io registry to be downloaded by the OpenShift cluster. During the build, a SHA checksum is added to the image tag, and the image reference in the Kubernetes deployment file is updated, triggering an automatic ArgoCD deployment.
+
+## Roadmap and Future Improvements
+
+1. The `OPENSHIFT_TOKEN` variable lasts only 24 hours; a permanent login solution (e.g., Service Account) is needed to deploy secrets reliably.
+2. The automatic build and detection is currently poorly tested. Changes to all Containerfiles need to be verified to ensure the GitHub Action automatically rebuilds them correctly.
+3. HTTPS has not yet been implemented.
+4. It would be beneficial to migrate the databases to use StatefulSets instead of standard Deployments.
+
+## GitHub Secrets and Variables
+
+To run the CI/CD pipeline successfully, the following secrets need to be configured in the repository settings under **Settings > Secrets and variables > Actions**.
+
+| Secret Name | Description |
+|-------------|-------------|
+| `OPENSHIFT_SERVER` | The API URL for the OpenShift cluster. |
+| `OPENSHIFT_TOKEN` | The authentication token for the OpenShift user (needs to be updated daily). |
+| `ARGOCD_PASSWORD` | The `admin` password for the ArgoCD instance. |
+| `DB_USER` | The username for the database application. |
+| `DB_PASSWORD` | The password for the database application. |
+| `DB_NAME` | The name of the database to be used. |
+| `QUAY_USERNAME` | Username for the Quay.io container registry. |
+| `QUAY_PASSWORD` | Password or Robot Token for Quay.io to allow pushing images. |
+| `RH_USERNAME` | Red Hat account username (used to pull UBI base images). |
+| `RH_PASSWORD` | Red Hat account password. |
