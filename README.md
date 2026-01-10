@@ -85,3 +85,124 @@ This file is used as a template by the GitHub workflow, simply adding GitHub var
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           DB_NAME: ${{ secrets.DB_NAME }}
 ```
+## Images
+
+This project builds and maintains custom container images for each component of the application. These images are hosted on Quay.io and are automatically rebuilt and pushed by GitHub Actions upon changes.
+
+| Component | Image Repository | Description |
+|-----------|------------------|-------------|
+| **Frontend** | `quay.io/eksta_mannen/frontend-argo` | Serves the web interface. |
+| **Backend** | `quay.io/eksta_mannen/backend-argo` | Handles API requests and logic. |
+| **Redis** | `quay.io/eksta_mannen/redis-argo` | Used for caching. |
+| **Postgres** | `quay.io/eksta_mannen/postgres-argo` | Primary database for storage. |
+
+Each build is tagged with the Git Commit SHA to ensure traceability and immutable deployments. The CI pipeline automatically updates the Kubernetes manifests to reference the new specific tag.
+
+## Frontend
+
+The frontend is a lightweight web server that serves the static content and proxies API requests to the backend.
+
+### Containerfile
+Based on the Red Hat Universal Base Image (UBI 10) with Nginx 1.26.
+- **Base Image**: `registry.access.redhat.com/ubi10/nginx-126:10.0`
+- **Setup**: Copies the custom `nginx.conf` and `index.html` into the container.
+- **Port**: Exposes port `8080` (standard for non-root containers in OpenShift).
+
+### index.html
+A single-page application (SPA) containing the guestbook user interface.
+- **Features**: Displays current guestbook entries, statistics (total entries, cache status), and a submission form.
+- **JavaScript**: Uses vanilla JavaScript and the `fetch` API to communicate with the backend endpoints (`/api/entries`, `/api/stats`).
+- **Styling**: Embedded CSS for a responsive design with visual feedback for cache hits/misses.
+
+### nginx.conf
+Custom Nginx configuration optimized for the OpenShift environment.
+- **Reverse Proxy**: Routes all traffic starting with `/api/` to the internal `http://backend` service, avoiding CORS issues.
+- **Resolver**: Configured to use the internal OpenShift DNS to dynamically resolve the backend service hostname.
+- **Security**: Runs as a non-root user and listens on port 8080.
+
+
+## Backend
+
+### Containerfile
+Uses a multi-stage build process to ensure a small and secure final image.
+- **Build Stage**: Compiles the Go application using a standard Go image.
+- **Runtime Stage**: Copies the compiled binary to a minimal Red Hat UBI image.
+- **User**: Runs as a non-root user for security compliance in OpenShift.
+
+### go.mod
+Defines the Go module and manages dependencies. Key libraries include:
+- **Router**: `gorilla/mux` for handling HTTP requests and routes.
+- **Database**: `lib/pq` (or similar) for PostgreSQL connection.
+- **Cache**: `go-redis` for interacting with the Redis service.
+
+### main.go
+The entry point of the application that initializes connections and routes.
+- **Configuration**: Reads DB credentials and service hostnames (`mw-postgres-service`, `mw-redis-service`) from environment variables.
+- **API Endpoints**:
+  - `GET /api/entries`: Fetches entries (checks Redis cache first, then DB).
+  - `POST /api/entries`: Writes a new entry to DB and invalidates the cache.
+  - `GET /api/stats`: Returns usage statistics.
+  - `/health`: Health check endpoint for Kubernetes probes.
+
+## Redis
+
+### Containerfile
+Builds the custom Redis image based on Red Hat UBI. It installs Redis, copies the necessary scripts (`run-redis.sh`, `health-check.sh`, `fix-permissions`), and prepares the environment for running as a non-root user.
+
+### fix-permissions
+A utility script often used in OpenShift images. It adjusts file system permissions to ensure that the directories (like `/var/lib/redis` and `/etc`) are writable by the root group (`root`, GID 0). This is crucial because OpenShift runs containers with an arbitrary user ID that is part of the root group.
+
+### health-check.sh
+A simple script used by Kubernetes Liveness and Readiness probes. It typically runs `redis-cli ping` to verify that the Redis server is accepting connections and responding correctly.
+
+### run-redis.sh
+The container entrypoint script responsible for bootstrapping the server.
+- **Dynamic Configuration**: Generates `redis.conf` on the fly. This allows secrets (like `REDIS_PASSWORD`) to be injected as environment variables without baking them into the image.
+- **Network Binding**: Explicitly binds to `0.0.0.0` to allow traffic from the backend pod.
+- **Persistence**: Configures the data directory to `/var/lib/redis/data` and enables disk persistence, ensuring the cache is not lost during restarts.
+- **Signal Handling**: Intercepts `SIGTERM` to perform a graceful shutdown of the Redis process.
+
+## Postgres
+
+### Containerfile
+Builds the custom PostgreSQL image based on Red Hat UBI. It installs the `postgresql-server` package, copies the management scripts (`run-db.sh`, `fix-permissions`), and prepares the file system permissions to support running as a non-root user in OpenShift.
+
+### fix-permissions
+A utility script that recursively changes ownership and permissions of specific directories (like `/var/lib/pgsql` and `/var/run/postgresql`). This allows the OpenShift-assigned arbitrary user ID (which is part of the root group) to write to these locations.
+
+### run-db.sh
+The entrypoint script that handles the database initialization and startup:
+- **Initialization**: If the data directory (`/var/lib/pgsql/data`) is empty, it runs `initdb` to create a new database cluster.
+- **Configuration**: Modifies `postgresql.conf` to listen on all network interfaces (`listen_addresses = '*'`) and configures authentication.
+- **Execution**: Starts the PostgreSQL server process.
+
+## Workflow
+
+### deploy-main.yml
+This workflow manages the deployment of configuration and secrets to the cluster.
+- **Secrets Job**: Logs in to OpenShift using the `oc` CLI and applies the `mw-secrets.yaml` file, injecting sensitive environment variables from GitHub Secrets.
+- **ArgoCD Job**: Waits for secrets to be applied, then logs in to the ArgoCD server. It executes `argocd app create --upsert` to ensure the application is correctly configured and synced with the repository.
+
+### build-frontend.yml
+Automates the build process for the web interface.
+- **Trigger**: Changes in `images/Frontend`.
+- **Action**: Builds the Nginx image and pushes it to Quay.io.
+- **GitOps**: Updates `k8s/frontend-quay.yaml` with the new image SHA, triggering ArgoCD to roll out the update.
+
+### build-backend.yml
+Automates the build process for the Go API.
+- **Trigger**: Changes in `images/Backend`.
+- **Action**: Builds the Go binary container and pushes it to Quay.io.
+- **GitOps**: Updates `k8s/backend-quay.yaml` with the new image SHA.
+
+### build-redis.yml
+Automates the build process for the Redis cache.
+- **Trigger**: Changes in `images/redis`.
+- **Action**: Builds the custom Redis image (with startup scripts) and pushes it to Quay.io.
+- **GitOps**: Updates `k8s/redis-quay.yaml` with the new image SHA.
+
+### build-postgres.yml
+Automates the build process for the database.
+- **Trigger**: Changes in `images/postgres`.
+- **Action**: Builds the custom PostgreSQL image and pushes it to Quay.io.
+- **GitOps**: Updates `k8s/postgres-quay.yaml` with the new image SHA.
