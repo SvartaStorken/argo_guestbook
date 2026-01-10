@@ -19,28 +19,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install oc CLI
-        uses: redhat-actions/oc-installer@v1.2
-
       - name: Install ArgoCD CLI
         uses: imajeetyadav/argocd-cli@v1
         with:
           version: latest
 
-      - name: Log in to OpenShift
-        uses: redhat-actions/oc-login@v1.3
-        with:
-          openshift_server_url: ${{ env.OPENSHIFT_SERVER }}
-          openshift_token: ${{ env.OPENSHIFT_TOKEN }}
-          insecure_skip_tls_verify: true
-
       - name: Create/Update ArgoCD Application
         env:
           ARGOCD_SERVER: openshift-gitops-server-openshift-gitops.apps.devops24.cloud2.se
+          ARGOCD_PASSWORD: ${{ secrets.ARGOCD_PASSWORD }}
         run: |
-          # Hämta admin-lösenordet från OpenShift (SSO fungerar ej i CI utan webbläsare)
-          ARGOCD_PASSWORD=$(oc get secret openshift-gitops-cluster -n openshift-gitops -o jsonpath='{.data.admin\.password}' | base64 -d)
-
           # Logga in i ArgoCD med admin-användaren
           argocd login $ARGOCD_SERVER --username admin --password "$ARGOCD_PASSWORD" --insecure --grpc-web --skip-test-tls
 
