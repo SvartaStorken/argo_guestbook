@@ -206,3 +206,27 @@ Automates the build process for the database.
 - **Trigger**: Changes in `images/postgres`.
 - **Action**: Builds the custom PostgreSQL image and pushes it to Quay.io.
 - **GitOps**: Updates `k8s/postgres-quay.yaml` with the new image SHA.
+
+## k8s
+
+The heart of the ArgoCD operation. This directory contains the Kubernetes manifests that define the infrastructure state. ArgoCD monitors these files and ensures the cluster matches this configuration.
+
+### Frontend
+*   **frontend-quay.yaml**: The Deployment manifest for the Nginx frontend.
+*   **frontend-service.yaml**: Defines the internal network service to expose the frontend pod.
+*   **frontend-configmap.yaml**: Stores the `nginx.conf` which is mounted into the container.
+*   **rout-guestbook.yaml**: The OpenShift Route that exposes the application to the public internet.
+
+### Backend
+*   **backend-quay.yaml**: The Deployment manifest for the Go backend API.
+*   **backend-service.yaml**: Defines the internal network service for the API.
+
+### Redis
+*   **redis-quay.yaml**: The Deployment manifest for the Redis cache.
+*   **mw-redis-service.yaml**: Defines the internal network service (port 6379).
+*   **pvc-redis.yaml**: PersistentVolumeClaim requesting storage for Redis data.
+
+### Postgres
+*   **mw-postgres-deployment.yaml**: The Deployment manifest for the PostgreSQL database.
+*   **mw-postgres-service.yaml**: Defines the internal network service (port 5432).
+*   **pvc-postgres.yaml**: PersistentVolumeClaim requesting storage for the database.
