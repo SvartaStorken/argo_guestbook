@@ -9,3 +9,24 @@ This assignment is a continuation of the final assignment of the Container Techn
 All files are based on the files from my previous assignment, which can be viewed at my GitLab account:
 
 https://gitlab.com/SvartaStorken/guestbook-ubi10-yaml
+
+The original assignment for the guestbook in the Container Technology course:
+https://github.com/jonasbjork/ocp-guestbook/blob/main/README.md
+
+## The Technical Part of the CI/CD Assignment
+The following will be tested:
+
+1. I should be able to view your guestbook at a URL provided in your submitted report. When I post an entry, it should be visible. I will then start my browser in incognito mode and open your URL again; my entry should be visible there as well.
+2. I will change replicas from X (whatever you chose) to X+2 and verify that your guestbook scales up to this value. You will therefore need to add me as a collaborator on your GitHub repo. My GitHub profile can be found at: https://github.com/jonasbjork
+
+## Infrastructure and Functionality
+
+GitHub Actions will first deploy the secrets necessary to run the databases, followed by the ArgoCD deployment.
+
+ArgoCD is configured to read all files in the `k8s` directory and deploy them to the cluster.
+
+Once ArgoCD is deployed, it will deploy the guestbook as configured in its YAML files.
+
+Any changes to the YAML files will trigger ArgoCD to redeploy.
+
+The GitHub workflow also builds the Containerfiles and uploads them to the Quay.io registry to be downloaded by the OpenShift cluster. During the build, a SHA checksum is added to the image tag, and the image reference in the Kubernetes deployment file is updated, triggering an automatic ArgoCD deployment.
