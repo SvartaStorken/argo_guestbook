@@ -1,0 +1,69 @@
+name: Deploy Production
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'templates/**'
+      - 'k8s/**'
+      - '.github/workflows/deploy-main.yml'
+
+jobs:
+  # JOBB 1: Hantera Secrets
+  deploy-secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install oc CLI
+        uses: redhat-actions/oc-installer@v1.2
+
+      - name: Log in to OpenShift
+        uses: redhat-actions/oc-login@v1.3
+        with:
+          openshift_server_url: ${{ secrets.OPENSHIFT_SERVER }}
+          openshift_token: ${{ secrets.OPENSHIFT_TOKEN }}
+          insecure_skip_tls_verify: true
+          namespace: grupp2
+
+      - name: Inject secrets and apply
+        env:
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+        run: |
+          cat templates/mw-secrets.yaml | envsubst | oc apply -f -
+
+  # JOBB 2: Hantera ArgoCD (Körs BARA om deploy-secrets lyckas)
+  deploy-argocd:
+    needs: deploy-secrets  # <--- HÄR ÄR MAGIN: Väntar på att secrets är klara
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install ArgoCD CLI
+        uses: imajeetyadav/argocd-cli@v1
+        with:
+          version: latest
+
+      - name: Create/Update ArgoCD Application
+        env:
+          ARGOCD_SERVER: openshift-gitops-server-openshift-gitops.apps.devops24.cloud2.se
+          ARGOCD_PASSWORD: ${{ secrets.ARGOCD_PASSWORD }}
+        run: |
+          argocd login $ARGOCD_SERVER --username admin --password "$ARGOCD_PASSWORD" --insecure --grpc-web --skip-test-tls
+          
+          # Notera: --upsert gör att den uppdaterar om den redan finns
+          argocd app create mw-guestbook \
+            --repo https://github.com/SvartaStorken/argo_guestbook.git \
+            --path k8s \
+            --dest-server https://kubernetes.default.svc \
+            --dest-namespace grupp2 \
+            --project default \
+            --sync-policy automated \
+            --auto-prune \
+            --self-heal \
+            --upsert
