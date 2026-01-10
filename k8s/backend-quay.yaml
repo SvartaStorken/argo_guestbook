@@ -5,7 +5,7 @@ metadata:
   labels:
     app: mw-backend
 spec:
-  replicas: 2 # Vi kör 2 för att testa lastbalansering
+  replicas: 4
   strategy:
     type: RollingUpdate
   selector:
