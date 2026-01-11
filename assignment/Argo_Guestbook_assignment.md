@@ -1,8 +1,7 @@
-### Argo Guestbook (individuellt projekt)
-## Lernia DevOps Engineer (DevOps24), Lernia Alvik 
+## Argo Guestbook (individuellt projekt)
+### Lernia DevOps Engineer (DevOps24), Lernia Alvik 
 
-## Namn
-### Martin Wallin
+### Namn: Martin Wallin
 
 ## Sammanfattning
 Detta projekt redovisar implementeringen av en GitOps-baserad CI/CD-pipeline för en gästboksapplikation på OpenShift. Med hjälp av ArgoCD, GitHub Actions och Quay.io har en helautomatiserad process skapats där kodändringar automatiskt bygger nya container-images och uppdaterar klustret. Lösningen använder prefixet `mw-` för att isolera resurser och hanterar hemligheter säkert via GitHub Secrets.
@@ -11,12 +10,14 @@ Detta projekt redovisar implementeringen av en GitOps-baserad CI/CD-pipeline fö
 This project presents the implementation of a GitOps-based CI/CD pipeline for a guestbook application on OpenShift. Using ArgoCD, GitHub Actions, and Quay.io, a fully automated process has been established where code changes automatically trigger new container image builds and cluster updates. The solution employs the `mw-` prefix for resource isolation and manages secrets securely via GitHub Secrets.
 
 ## Innehållsförteckning
-1. Inledning
-2. Bakgrund
-3. Metod
-4. Resultat
-5. Diskussion
-6. Källförteckning
+| Kapitel | Sida |
+| :--- | ---: |
+| 1. [Inledning](#inledning) | 1 |
+| 2. [Bakgrund](#bakgrund) | 1 |
+| 3. [Metod](#metod) | 1 |
+| 4. [Resultat](#resultat) | 2 |
+| 5. [Diskussion](#diskussion) | 3 |
+| 6. [Källförteckning](#källförteckning) | 3 |
 
 ## Inledning
 Syftet med denna inlämningsuppgift var att bygga vidare på den tidigare "Automate Guestbook"-uppgiften och implementera Continuous Deployment (CD) med hjälp av verktyget ArgoCD. Målet var att skapa en robust pipeline där ändringar i källkod eller konfiguration automatiskt speglas i produktionsmiljön utan manuell handpåläggning, enligt GitOps-principen.
@@ -48,7 +49,7 @@ Eftersom ArgoCD läser från ett publikt repo kan känslig data (som databaslös
 
 ### Åtkomst och Funktion
 Gästboken är driftsatt och nåbar på följande URL:
-*   **URL**: [Klistra in din Route-URL här, t.ex. https://mw-guestbook-grupp2.apps.devops24.cloud2.se]
+*   **URL**: http://mw-guestbook-grupp2.apps.devops24.cloud2.se
 
 Jag har verifierat att:
 1.  Inlägg sparas i databasen och syns även om jag öppnar sidan i ett inkognito-fönster (persistens fungerar).
@@ -62,16 +63,16 @@ Systemet klarar av de tester som specificerats:
 ## Diskussion
 
 ### Reflektion över arbetet
-Att gå från imperativ driftsättning (skript) till deklarativ (GitOps) krävde ett nytt tankesätt. Den största utmaningen var att hantera "hönan och ägget"-problemet med hemligheter. Eftersom ArgoCD inte bör hantera secrets i klartext, valde jag en hybridlösning där GitHub Actions ansvarar för secrets och ArgoCD för resten. Detta ger en bra balans mellan säkerhet och automation.
+Att gå från imperativ driftsättning (skript) till deklarativ (GitOps) krävde ett nytt tankesätt, särskilt eftersom alla filer görs tillgängliga i ett publikt GitHub-repo. Detta medförde en säkerhetsrisk gällande hanteringen av hemligheter (Secrets), då ArgoCD i sin standardkonfiguration läser allt från repot. Om jag hade lagt databaslösenorden direkt i `k8s`-katalogen hade de exponerats öppet. Efter att ha undersökt olika alternativ kom jag fram till att den smidigaste lösningen för denna uppgift var att använda GitHub Actions för att injicera hemligheterna från skyddade GitHub Secrets direkt in i klustret, separat från ArgoCDs synkronisering.
 
-En annan insikt var vikten av att använda specifika image-taggar (SHA) istället för `latest`. Med `latest` vet inte ArgoCD om imagen har ändrats, men genom att CI-pipelinen uppdaterar manifestet med en unik hash garanteras att ArgoCD alltid deployar exakt den version som byggdes.
+En annan viktig insikt var nödvändigheten av att använda specifika image-taggar (SHA) istället för `latest`. Eftersom `latest`-taggen inte ändras vid nya byggen kan ArgoCD missa att en uppdatering skett. Genom att låta CI-pipelinen uppdatera manifestet med en unik commit-hash garanteras att ArgoCD alltid upptäcker förändringen och deployar exakt den version som byggdes.
 
 ### Motivering av val
-*   **UBI Images**: Jag valde Red Hat UBI 10 som bas för att följa "best practice" i OpenShift och få säkerhetsuppdateringar.
-*   **Prefix (mw-)**: Nödvändigt för att kunna dela namespace med andra studenter utan krockar.
-*   **GitHub Actions + ArgoCD**: GitHub Actions är överlägset för CI (bygga/testa), medan ArgoCD är specialiserat på CD (synka state). Att kombinera dem ger det bästa av två världar.
+*   **UBI Images**: Jag valde Red Hat UBI 10 som bas-image. Eftersom detta är en relativt ny version saknas det ofta färdiga exempel och AI-modeller har ibland begränsad kontext kring den, vilket innebar en spännande utmaning. Det gav en unik och lärorik övning i att utveckla containers i en "bleeding edge"-miljö utan att kunna förlita sig på gamla guider.
 
-### Förbättringsförslag (VG-nivå)
+*   **GitHub Actions + ArgoCD**: Även om huvudfokus för deployment låg på ArgoCD, visade det sig nödvändigt att komplettera med GitHub Actions för att skapa en komplett och robust pipeline. Förutom att hantera CI-delen (bygga images), löste GitHub Actions två kritiska problem som ArgoCD ensamt inte hanterar lika smidigt: säker injicering av hemligheter och bootstrapping av själva ArgoCD-installationen. Efter att ha upplevt driftstörningar i klustret insåg jag värdet av att kunna återställa hela miljön – inklusive ArgoCD-konfigurationen – automatiskt, istället för att manuellt konfigurera via webbgränssnittet. Detta hybrid-upplägg ger en snabbare och mer pålitlig återställning (Disaster Recovery).
+
+### Förbättringsförslag
 För att göra lösningen ännu mer produktionsmässig skulle jag vilja implementera följande:
 
 1.  **Permanent Inloggning (Service Account)**:
@@ -94,7 +95,3 @@ För att göra lösningen ännu mer produktionsmässig skulle jag vilja implemen
 
 ## Bilagor
 Se `README.md` i GitHub-repot för fullständig teknisk dokumentation, diagram och konfigurationsfiler.
-
-## Källförteckning 
-
-## Bilagor
