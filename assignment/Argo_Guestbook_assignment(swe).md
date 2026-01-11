@@ -6,18 +6,13 @@
 ## Sammanfattning
 Detta projekt redovisar implementeringen av en GitOps-baserad CI/CD-pipeline för en gästboksapplikation på OpenShift. Med hjälp av ArgoCD, GitHub Actions och Quay.io har en helautomatiserad process skapats där kodändringar automatiskt bygger nya container-images och uppdaterar klustret. Lösningen använder prefixet `mw-` för att isolera resurser och hanterar hemligheter säkert via GitHub Secrets.
 
-## Abstract
-This project presents the implementation of a GitOps-based CI/CD pipeline for a guestbook application on OpenShift. Using ArgoCD, GitHub Actions, and Quay.io, a fully automated process has been established where code changes automatically trigger new container image builds and cluster updates. The solution employs the `mw-` prefix for resource isolation and manages secrets securely via GitHub Secrets.
-
 ## Innehållsförteckning
-| Kapitel | Sida |
-| :--- | ---: |
-| 1. [Inledning](#inledning) | 1 |
-| 2. [Bakgrund](#bakgrund) | 1 |
-| 3. [Metod](#metod) | 1 |
-| 4. [Resultat](#resultat) | 2 |
-| 5. [Diskussion](#diskussion) | 3 |
-| 6. [Källförteckning](#källförteckning) | 3 |
+*   1. [Inledning](#inledning)
+*   2. [Bakgrund](#bakgrund)
+*   3. [Metod](#metod)
+*   4. [Resultat](#resultat)
+*   5. [Diskussion](#diskussion)
+*   6. [Källförteckning](#källförteckning)
 
 ## Inledning
 Syftet med denna inlämningsuppgift var att bygga vidare på den tidigare "Automate Guestbook"-uppgiften och implementera Continuous Deployment (CD) med hjälp av verktyget ArgoCD. Målet var att skapa en robust pipeline där ändringar i källkod eller konfiguration automatiskt speglas i produktionsmiljön utan manuell handpåläggning, enligt GitOps-principen.
@@ -31,7 +26,7 @@ I kursen Containerteknik skapades grunden för applikationen bestående av en fr
 Applikationen är uppdelad i mikrotjänster där varje komponent har sin egen byggprocess. För att undvika konflikter i det gemensamma OpenShift-klustret har alla resurser (Deployments, Services, PVCs) prefixats med `mw-` (Martin Wallin), exempelvis `mw-guestbook` och `mw-postgres`.
 
 ### CI - Continuous Integration (GitHub Actions)
-Jag har skapat separata arbetsflöden (workflows) för varje komponent (Frontend, Backend, Redis, Postgres). När kod pushas till `main`-grenen sker följande:
+Jag har skapat separata arbetsflöden för varje komponent (Frontend, Backend, Redis, Postgres). När kod pushas till `main`-grenen sker följande:
 1.  **Bygge**: En ny container-image byggs baserat på Red Hat UBI (Universal Base Image).
 2.  **Publicering**: Imagen taggas med både `latest` och Git-commitens SHA-hash (för spårbarhet) och pushas till Quay.io.
 3.  **Manifest-uppdatering**: Arbetsflödet använder verktyget `yq` för att automatiskt uppdatera Kubernetes-manifestet i `k8s/`-mappen med den nya specifika SHA-taggen.
@@ -95,9 +90,13 @@ Det omfattande arbetet med att agera klusteradministratör tog tid från själva
 
 ## Källförteckning
 
-*   **Projekt-repo**: https://github.com/SvartaStorken/argo_guestbook
-*   **Container Registry**: https://quay.io/repository/eksta_mannen/
-*   **ArgoCD Dokumentation**: https://argo-cd.readthedocs.io/
-
-## Bilagor
-Se `README.md` i GitHub-repot för fullständig teknisk dokumentation, diagram och konfigurationsfiler.
+*   **Projekt-repo (GitHub)**: <https://github.com/SvartaStorken/argo_guestbook>
+    *   Innehåller all källkod, Kubernetes-manifest och dokumentation för detta projekt.
+*   **Kodbas för Images (GitLab)**: <https://gitlab.com/SvartaStorken>
+    *   Repo för tidigare uppgifter samt källkod som ligger till grund för container-images.
+*   **Container Registry (Quay.io)**: <https://quay.io/repository/eksta_mannen/>
+    *   Publikt register där projektets byggda images lagras.
+*   **ArgoCD Dokumentation**: <https://argo-cd.readthedocs.io/>
+    *   Officiell dokumentation som använts för konfiguration och felsökning.
+*   **Kursmaterial (GitHub)**: <https://github.com/jonasbjork>
+    *   Jonas Björks repository med labbar och instruktioner som legat till grund för uppgiften.
